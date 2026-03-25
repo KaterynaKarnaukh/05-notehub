@@ -1,0 +1,32 @@
+import { Note } from '../../types/notes';
+import css from './NoteList.module.css';
+
+interface NoteListProps {
+  notes: Note[];
+  onDelete: (id: string) => void;
+}
+
+const NoteList = ({ notes, onDelete }: NoteListProps) => {
+  if (notes.length === 0) return null;
+
+  return (
+    <ul className={css.list}>
+      {notes.map(({ id, title, content, tag }) => (
+        <li key={id} className={css.listItem}>
+          <div>
+            <h2 className={css.title}>{title}</h2>
+            <p className={css.content}>{content}</p>
+          </div>
+          <div className={css.footer}>
+            <span className={css.tag}>{tag}</span>
+            <button className={css.button} onClick={() => onDelete(id)}>
+              Видалити
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+export default NoteList;
