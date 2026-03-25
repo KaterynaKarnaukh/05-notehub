@@ -30,7 +30,3 @@ export const createNote = async (note: Omit<Note, 'id'>): Promise<Note> => {
   return response.data;
 };
 
-export const deleteNote = async (id: string): Promise<Note> => {
-  const response = await instance.delete<Note>(`/notes/${id}`);
-  return response.data;
-};
