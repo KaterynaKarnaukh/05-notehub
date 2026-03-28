@@ -1,48 +1,34 @@
-import { useState } from 'react'; // Видалили useCallback
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDebouncedCallback } from 'use-debounce';
-import { fetchNotes, createNote, deleteNote } from '../../services/noteService';
+import { fetchNotes} from '../../services/noteService';
 import NoteList from '../NoteList/NoteList';
 import SearchBox from '../SearchBox/SearchBox';
 import Pagination from '../Pagination/Pagination';
 import Modal from '../Modal/Modal';
 import NoteForm from '../NoteForm/NoteForm';
 import css from './App.module.css';
-import type { Note } from '../../types/note';
 
 const App = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
 
+  // 1. Отримання даних залишається в App, бо вони потрібні для NoteList та Pagination
   const { data, isLoading } = useQuery({
     queryKey: ['notes', page, search],
     queryFn: () => fetchNotes(page, search),
   });
 
+  // 2. Дебаунс пошуку
   const debouncedSearch = useDebouncedCallback((val: string) => {
     setSearch(val);
     setPage(1);
   }, 500);
 
-  const createMutation = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
-      setIsModalOpen(false);
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
-  });
-
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        {/* Додали value={search}, щоб задовольнити SearchBoxProps */}
         <SearchBox 
           value={search} 
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => debouncedSearch(e.target.value)} 
@@ -52,7 +38,7 @@ const App = () => {
           <Pagination 
             totalPages={data.totalPages} 
             currentPage={page} 
-            onPageChange={(nextPage: number) => setPage(nextPage)} // Типізували nextPage
+            onPageChange={(nextPage: number) => setPage(nextPage)} 
           />
         )}
 
@@ -61,16 +47,17 @@ const App = () => {
         </button>
       </header>
 
-      {isLoading ? <p>Loading...</p> : (
-        <NoteList notes={data?.notes || []} onDelete={(id: string) => deleteMutation.mutate(id)} />
+      {/* 3. NoteList тепер сам знає, як видаляти нотатки */}
+      {isLoading ? (
+        <p>Завантаження нотаток...</p>
+      ) : (
+        <NoteList notes={data?.notes || []} />
       )}
 
+      {/* 4. NoteForm тепер сам знає, як створювати нотатки */}
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm 
-onSubmit={(values) => createMutation.mutate(values as Omit<Note, 'id'>)} 
-  onClose={() => setIsModalOpen(false)}
-          />
+          <NoteForm onClose={() => setIsModalOpen(false)} />
         </Modal>
       )}
     </div>

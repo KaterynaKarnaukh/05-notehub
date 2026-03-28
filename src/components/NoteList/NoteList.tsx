@@ -1,12 +1,28 @@
 import type { Note } from '../../types/note';
 import css from './NoteList.module.css';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { deleteNote } from '../../services/noteService';
 
 interface NoteListProps {
   notes: Note[];
-  onDelete: (id: string) => void;
 }
 
-const NoteList = ({ notes, onDelete }: NoteListProps) => {
+const NoteList = ({ notes }: NoteListProps) => {
+  const queryClient = useQueryClient();
+
+  // Мутація видалення всередині компонента
+  const mutation = useMutation({
+    mutationFn: (id: string) => deleteNote(id),
+    onSuccess: () => {
+      // Автоматичне оновлення списку після видалення
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    },
+    onError: (error) => {
+      console.error("Помилка при видаленні:", error);
+      alert("Не вдалося видалити нотатку.");
+    }
+  });
+
   if (notes.length === 0) return null;
 
   return (
@@ -19,8 +35,12 @@ const NoteList = ({ notes, onDelete }: NoteListProps) => {
           </div>
           <div className={css.footer}>
             <span className={css.tag}>{tag}</span>
-            <button className={css.button} onClick={() => onDelete(id)}>
-              Видалити
+            <button 
+              className={css.button} 
+              onClick={() => mutation.mutate(id)}
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? '...' : 'Видалити'}
             </button>
           </div>
         </li>
@@ -28,5 +48,6 @@ const NoteList = ({ notes, onDelete }: NoteListProps) => {
     </ul>
   );
 };
+
 
 export default NoteList;

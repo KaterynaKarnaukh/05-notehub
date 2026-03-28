@@ -25,8 +25,16 @@ export const fetchNotes = async (page: number, search: string): Promise<FetchNot
   return response.data;
 };
 
-export const createNote = async (note: Omit<Note, 'id'>): Promise<Note> => {
+export const createNote = async (
+  note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<Note> => {
   const response = await instance.post<Note>('/notes', note);
   return response.data;
 };
+
+export const deleteNote = async (id: string): Promise<Note> => {
+  const response = await instance.delete<Note>(`/notes/${id}`);
+  return response.data;
+};
+
 
