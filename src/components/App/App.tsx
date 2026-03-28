@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useDebouncedCallback } from 'use-debounce';
 import { fetchNotes} from '../../services/noteService';
 import NoteList from '../NoteList/NoteList';
@@ -14,13 +14,13 @@ const App = () => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 1. Отримання даних залишається в App, бо вони потрібні для NoteList та Pagination
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ['notes', page, search],
     queryFn: () => fetchNotes(page, search),
+    // Додаємо безшовну пагінацію
+    placeholderData: keepPreviousData, 
   });
 
-  // 2. Дебаунс пошуку
   const debouncedSearch = useDebouncedCallback((val: string) => {
     setSearch(val);
     setPage(1);
@@ -47,14 +47,18 @@ const App = () => {
         </button>
       </header>
 
-      {/* 3. NoteList тепер сам знає, як видаляти нотатки */}
+      {/* Використовуємо isLoading лише для першого завантаження.
+          Завдяки placeholderData, під час перемикання сторінок 
+          isLoading буде false, а дані будуть "старими", поки не прийдуть нові.
+      */}
       {isLoading ? (
         <p>Завантаження нотаток...</p>
       ) : (
-        <NoteList notes={data?.notes || []} />
+        <div style={{ opacity: isPlaceholderData ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+          <NoteList notes={data?.notes || []} />
+        </div>
       )}
 
-      {/* 4. NoteForm тепер сам знає, як створювати нотатки */}
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
           <NoteForm onClose={() => setIsModalOpen(false)} />
